@@ -124,7 +124,7 @@ def joinClusterization(
                     
     return clusters
 
-def normalizePatterns(patterns: list[list[float]]) -> list[list[float]]:
+def normalizePatterns(patterns: list[list[float]], precision: int) -> list[list[float]]:
     '''Нормализация образов/NPs'''
     if max(len(x) for x in patterns) != min(len(x) for x in patterns):
         raise ValueError("Invalid arguments for normalization.")
@@ -133,24 +133,24 @@ def normalizePatterns(patterns: list[list[float]]) -> list[list[float]]:
     for i in range(len(patterns[0])):
         maxParamValues.append(max(l[i] for l in patterns))
         minParamValues.append(min(l[i] for l in patterns))
-    return list(map(lambda l: normalizePattern(l, minParamValues, maxParamValues), patterns))
+    return list(map(lambda l: normalizePattern(l, minParamValues, maxParamValues, precision), patterns))
 
-def normalizePattern(pattern: list[float], minParamValues: list[float], maxParamValues: list[float]) -> list[float]:
+def normalizePattern(pattern: list[float], minParamValues: list[float], maxParamValues: list[float], precision: int) -> list[float]:
     '''Нормализация образа/NP'''
     if len(pattern) != len(minParamValues) or len(pattern) != len(maxParamValues):
         raise ValueError("Invalid arguments for normalization.")
     normalizedPattern = []
     for i in range(len(pattern)):
-        normalizedPattern.append((pattern[i] - minParamValues[i]) / (maxParamValues[i] - minParamValues[i]))
+        normalizedPattern.append(round((pattern[i] - minParamValues[i]) / (maxParamValues[i] - minParamValues[i]), precision))
     return normalizedPattern
 
-normalizedPatterns = normalizePatterns(originalPatterns)
+normalizedPatterns = normalizePatterns(originalPatterns, 2)
 patternSets = [originalPatterns, normalizedPatterns]
 
 for patternSet in patternSets:
     for clusterDist in [centerClusterDist, nearestNeighborClusterDist]:
         for dist in [euclidDist, dominationDist]:
-            for cutoffDist in [0.15, 0.30, 15, 30]:
+            for cutoffDist in [0.10, 0.15, 0.30, 10, 15, 30]:
                 clusters = joinClusterization(patternSet, dist, clusterDist, cutoffDist)
                 fileName = f'{inspect.getdoc(joinClusterization).split("/")[1]}_{inspect.getdoc(dist).split("/")[1]}_{inspect.getdoc(clusterDist).split("/")[1]}_{cutoffDist}_{datetime.now().strftime("%Y%m%d-%H%M%S.%f")}.txt'.replace(" ", "_")
                 file = open(fileName, "x", encoding="utf-8")
