@@ -24,9 +24,20 @@
     <Compile Include="Lab02NeuralLayer.py" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="PatternVariants\" />
     <Folder Include="PatternStandarts\" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="PatternVariants\1_v1.bmp" />
+    <Content Include="PatternVariants\1_v2.bmp" />
+    <Content Include="PatternVariants\k_v1.bmp" />
+    <Content Include="PatternVariants\k_v2.bmp" />
+    <Content Include="PatternVariants\o_v1.bmp" />
+    <Content Include="PatternVariants\o_v2.bmp" />
+    <Content Include="PatternVariants\s_v1.bmp" />
+    <Content Include="PatternVariants\s_v2.bmp" />
+    <Content Include="PatternVariants\v_v1.bmp" />
+    <Content Include="PatternVariants\v_v2.bmp" />
     <Content Include="PatternStandarts\1_standart.bmp" />
     <Content Include="PatternStandarts\k_standart.bmp" />
     <Content Include="PatternStandarts\o_standart.bmp" />
