@@ -9,6 +9,8 @@ Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Lab02NeuralLayer", "Lab02Ne
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Lab03ExpertSystemDB", "Lab03ExpertSystemDB\Lab03ExpertSystemDB.pyproj", "{B0D44869-AEED-473E-9563-D41D10D86AA0}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "Lab04ExpertSystemShell", "Lab04ExpertSystemShell\Lab04ExpertSystemShell.pyproj", "{F6417F5F-1F9E-4FCE-B44A-BF35E4857542}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,8 @@ Global
 		{A07FBBF2-18A8-4A3C-9352-1CA9874BA652}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0D44869-AEED-473E-9563-D41D10D86AA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B0D44869-AEED-473E-9563-D41D10D86AA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6417F5F-1F9E-4FCE-B44A-BF35E4857542}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6417F5F-1F9E-4FCE-B44A-BF35E4857542}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
