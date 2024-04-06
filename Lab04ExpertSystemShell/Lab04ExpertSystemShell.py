@@ -5,6 +5,7 @@ import re
 import shutil
 from datetime import datetime
 import sqlite3
+from typing import Callable
 
 class symptom:
     id: int
@@ -71,7 +72,16 @@ class dataBatch:
     diagnosisSymptoms: list[diagnosisSymptom]
     diagnoses: list[diagnosis]
 
-def executeScriptFile(dbConnection: sqlite3.Connection, scriptPath: str) -> sqlite3.Cursor:
+def getIntInput(possibleAnswers: list[int]) -> int:
+    '''Считывание числа с консоли'''
+    while(True):
+        answer = input()
+        if re.fullmatch('^[0-9]+$', answer) and int(answer) in possibleAnswers:
+            break
+        print(f'Некорректный ввод')
+    return int(answer)
+
+def executeScriptFileLocal(dbConnection: sqlite3.Connection, scriptPath: str) -> sqlite3.Cursor:
     '''Выполнения файла SQL скрипта'''
     if not exists(scriptPath):
         raise ValueError("Script file not found.")
@@ -96,7 +106,7 @@ def recreateDB():
 def getData(dbConnection: sqlite3.Connection) -> dataBatch:
     '''Формирование модели данных БД'''
     dbConnection.row_factory = sqlite3.Row
-    dataRows = executeScriptFile(dbConnection, "SQL\GetData.sql").fetchall()
+    dataRows = executeScriptFileLocal(dbConnection, "SQL\GetData.sql").fetchall()
     symptoms = []
     symptomIds = []
     symptomQuestions = []
@@ -182,8 +192,21 @@ def getSymptomsByAvgP(data: dataBatch) -> list[tuple[symptom, float]]:
 
 def printDiagnoses(diagnoses: list[diagnosis]):
     '''Вывод текущих данных по диагнозам'''
+    diagHeader = "Диагноз"
+    diagCol = f'{{0:{max(max(len(d.diagnosis) for d in diagnoses), len(diagHeader))}}}'
+    print(f'{diagCol.format(diagHeader)}\tP\tPMin\tPMax')
     for d in diagnoses:
-        print(f'{d.diagnosis} - {d.p} / {d.getPMin()} / {d.getPMax()}')
+        print(f'{diagCol.format(d.diagnosis)}\t{round(d.p, 2)}\t{round(d.getPMin(), 2)}\t{round(d.getPMax(), 2)}')
+    print()
+        
+def printSymptomsP(symptomsP: list[tuple[symptom, float]]):
+    '''Вывод симптомов со средней вероятностью связанных диагнозов'''
+    symptomHeader = "Симптом"
+    symptomCol = diagCol = f'{{0:{max(max(len(s[0].symptom) for s in symptomsP), len(symptomHeader))}}}'
+    print(f'{symptomCol.format(symptomHeader)}\tPAvg')
+    for symptomP in symptomsP:
+        print(f'{symptomCol.format(symptomP[0].symptom)}\t\t{round(symptomP[1], 2)}')
+    print()
 
 def askSymptomQuestion(id: int, data: dataBatch):
     '''Получение ответа на вопрос с перерасчетом данных'''
@@ -192,12 +215,7 @@ def askSymptomQuestion(id: int, data: dataBatch):
     possibleAnswers = list(map(lambda i: i, range(len(question.symptoms))))
     for i in possibleAnswers:
         print(f'\t{i}. {question.symptoms[i].symptom}')
-    while(True):
-        answer = input()
-        if re.fullmatch('^[0-9]+$', answer) and int(answer) in possibleAnswers:
-            break
-        print(f'Некорректный ответ')
-    acceptSymptom(question.symptoms[int(answer)].id, data)
+    acceptSymptom(question.symptoms[getIntInput(possibleAnswers)].id, data)
 
 def acceptSymptom(symptomId: int, data: dataBatch):
     '''Подтвержение симптома с перерасчетом данных'''
@@ -230,26 +248,56 @@ def removeUnprobableDiagnoses(data: dataBatch):
     data.diagnoses = [ diagnosisResult ]
     
 def findDiagnosisByProbabilityThreshhold(probabilityThreshhold: float, data: dataBatch) -> diagnosis:
-    '''Поиск диагноза с вероятностью выше указанной'''
+    '''Поиск наиболее вероятного диагноза с вероятностью выше указанной'''
+    resutlDiagnosis: diagnosis = None
     for d in data.diagnoses:
-        if d.p > probabilityThreshhold:
-            return d
-    return None
+        if d.p > probabilityThreshhold and d.p > 0 if resutlDiagnosis == None else resutlDiagnosis.p:
+            resutlDiagnosis = d
+    return resutlDiagnosis
 
-#recreateDB()
-dbConnection = sqlite3.connect("expertDB.db")
+def getRecommendation(printP: bool):
+    '''Получение диагноза'''
+    if not exists("expertDB.db"):
+        print("Не найден файл БД.")
+        return
+    dbConnection = sqlite3.connect("expertDB.db")
+    while(True):
+        data = getData(dbConnection)
+        diagnosisResult: diagnosis = None
+        while(diagnosisResult == None and len(data.diagnoses) > 1):
+            symptomsByP = getSymptomsByAvgP(data)
+            if printP:
+                printDiagnoses(data.diagnoses)
+                printSymptomsP(symptomsByP)
+            if len(symptomsByP) > 0 :
+                askSymptomQuestion(symptomsByP[0][0].questionId, data)
+                diagnosisResult = findDiagnosisByProbabilityThreshhold(0.95, data)
+            else:
+                findDiagnosisByProbabilityThreshhold(0, data)
+            removeUnprobableDiagnoses(data)
+        diagnosisResult = data.diagnoses[0] if diagnosisResult == None else diagnosisResult
+        print(f'Рекомендация: {diagnosisResult.diagnosis}')
+        print(f'Повторить? (y/n)')
+        if not re.fullmatch('^[yY]|([yY][eE][sS])$', input()):
+            break
+    dbConnection.close()
+
+def printPSwitch(): 
+    '''Смена значения переменной вывода промежуточных вероятностей'''
+    global printP 
+    printP = not printP
+    global menuOptions
+    menuOptions[2] = (f'Вывод промежеточных вероятностей: {"Вкл." if printP else "Выкл."}', menuOptions[2][1])
+
+printP = True
+menuOptions: dict[int, tuple[str, Callable[[], None]]] = {
+    1: ("Получить рекомендацию.", lambda: getRecommendation(printP)),
+    2: (f'Вывод промежеточных вероятностей: {"Вкл." if printP else "Выкл."}', printPSwitch),
+    3: ("Восстановить БД.", recreateDB),
+    0: ("Выход.", exit)
+}
 while(True):
-    data = getData(dbConnection)
-    diagnosisResult: diagnosis = None
-    while(diagnosisResult == None and len(data.diagnoses) > 1):
-        printDiagnoses(data.diagnoses)
-        symptomsByP = getSymptomsByAvgP(data)
-        askSymptomQuestion(symptomsByP[0][0].questionId, data)
-        diagnosisResult = findDiagnosisByProbabilityThreshhold(0.95, data)
-        removeUnprobableDiagnoses(data)
-    diagnosisResult = data.diagnoses[0].diagnosis if diagnosisResult == None else diagnosisResult
-    print(f'Рекомендация: {diagnosisResult.diagnosis}')
-    print(f'Повторить? (y/n)')
-    if not re.fullmatch('^[yY]|([yY][eE][sS])$', input()):
-        break
-dbConnection.close()
+    print(f'Эксперная система по рекомендации фильмов.\n')
+    for i in menuOptions.items():
+        print(f'{i[0]}. {i[1][0]}')
+    menuOptions[getIntInput(list(map(lambda i: i[0], menuOptions.items())))][1]()
