@@ -287,17 +287,22 @@ def printPSwitch():
     global printP 
     printP = not printP
     global menuOptions
-    menuOptions[2] = (f'Вывод промежеточных вероятностей: {"Вкл." if printP else "Выкл."}', menuOptions[2][1])
+    menuOptions[2] = (getPrintPOptionString(), menuOptions[2][1])
+    
+def getPrintPOptionString():
+    '''Формирования строки меню вывода промежуточных вероятностей'''
+    global printP 
+    return f'Вывод промежуточных вероятностей: {"Вкл." if printP else "Выкл."}'
 
 printP = True
 menuOptions: dict[int, tuple[str, Callable[[], None]]] = {
     1: ("Получить рекомендацию.", lambda: getRecommendation(printP)),
-    2: (f'Вывод промежеточных вероятностей: {"Вкл." if printP else "Выкл."}', printPSwitch),
+    2: (getPrintPOptionString(), printPSwitch),
     3: ("Восстановить БД.", recreateDB),
     0: ("Выход.", exit)
 }
 while(True):
-    print(f'Эксперная система по рекомендации фильмов.\n')
+    print(f'Экспертная система по рекомендации фильмов.\n')
     for i in menuOptions.items():
         print(f'{i[0]}. {i[1][0]}')
     menuOptions[getIntInput(list(map(lambda i: i[0], menuOptions.items())))][1]()
